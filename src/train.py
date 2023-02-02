@@ -9,9 +9,7 @@ def test(model, test_loader, n_test_samples, device, is_regression=False):
     model.eval()
     total_correct = 0
     with torch.inference_mode():
-        with tqdm(
-            test_loader, total=n_test_samples, leave=False, mininterval=0.5
-        ) as epoch_progress:
+        with tqdm(test_loader, leave=False, mininterval=0.5) as epoch_progress:
             for data, label in epoch_progress:
                 data = data.to(device)
                 label = label.to(device)
@@ -29,14 +27,13 @@ def test(model, test_loader, n_test_samples, device, is_regression=False):
 
 
 def train(model, loss_fn, train_set, test_set, num_epochs=10, collate_fn=None):
-    n_train_samples = len(train_set)
     n_test_samples = len(test_set)
     batch_size = 64
     train_loader = DataLoader(
         train_set,
         batch_size=batch_size,
         shuffle=True,
-        num_workers=2,
+        num_workers=1,
         pin_memory=True if torch.cuda.is_available() else False,
         drop_last=True,
         collate_fn=collate_fn,
@@ -45,7 +42,7 @@ def train(model, loss_fn, train_set, test_set, num_epochs=10, collate_fn=None):
         test_set,
         batch_size=batch_size,
         shuffle=False,
-        num_workers=2,
+        num_workers=1,
         pin_memory=True if torch.cuda.is_available() else False,
         drop_last=False,
         collate_fn=collate_fn,
@@ -61,11 +58,7 @@ def train(model, loss_fn, train_set, test_set, num_epochs=10, collate_fn=None):
         for epoch in train_progress:
             model.train()
             with tqdm(
-                train_loader,
-                desc=f"Epoch {epoch}",
-                total=n_train_samples,
-                leave=False,
-                mininterval=0.5,
+                train_loader, desc=f"Epoch {epoch}", leave=False, mininterval=0.5
             ) as epoch_progress:
                 for data, label in epoch_progress:
                     data = data.to(device)
