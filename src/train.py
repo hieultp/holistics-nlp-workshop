@@ -2,7 +2,7 @@ import torch
 import torch.nn as nn
 from torch.optim import Adam
 from torch.utils.data import DataLoader
-from tqdm import tqdm, trange
+from tqdm.auto import tqdm, trange
 
 
 def test(model, test_loader, n_test_samples, device, is_regression=False):
