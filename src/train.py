@@ -49,7 +49,7 @@ def train(model, loss_fn, train_set, test_set, num_epochs=10, collate_fn=None):
     )
 
     is_regression = not isinstance(loss_fn, nn.CrossEntropyLoss)
-    device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
+    device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
     optimizer = Adam(model.parameters(), lr=1e-4)
     model = model.to(device)
     best_accuracy = 0.0
