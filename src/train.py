@@ -9,31 +9,26 @@ def test(model, test_loader, n_test_samples, device, is_regression=False):
     model.eval()
     total_correct = 0
     with torch.inference_mode():
-        with tqdm(test_loader, total=n_test_samples, leave=False) as epoch_progress:
-            for img, label in epoch_progress:
-                img = img.to(device)
+        with tqdm(
+            test_loader, total=n_test_samples, leave=False, mininterval=0.5
+        ) as epoch_progress:
+            for data, label in epoch_progress:
+                data = data.to(device)
                 label = label.to(device)
 
-                prediction = model(img)
+                prediction = model(data)
 
                 # Calculate accuracy
                 if is_regression:
-                    prediction = prediction.clip(max=10).round().squeeze()
+                    prediction = prediction.round().squeeze()
                 else:
-                    prediction = prediction.argmax(dim=1, keepdim=True).squeeze()
+                    prediction = prediction.argmax(dim=1)
                 total_correct += (prediction == label).sum().item()
 
     return total_correct / n_test_samples
 
 
-def train(
-    model,
-    loss_fn,
-    train_set,
-    test_set,
-    use_gpu=False,
-    num_epochs=10,
-):
+def train(model, loss_fn, train_set, test_set, num_epochs=10, collate_fn=None):
     n_train_samples = len(train_set)
     n_test_samples = len(test_set)
     batch_size = 64
@@ -42,52 +37,71 @@ def train(
         batch_size=batch_size,
         shuffle=True,
         num_workers=2,
-        pin_memory=True if use_gpu else False,
+        pin_memory=True if torch.cuda.is_available() else False,
         drop_last=True,
+        collate_fn=collate_fn,
     )
     test_loader = DataLoader(
         test_set,
         batch_size=batch_size,
         shuffle=False,
         num_workers=2,
-        pin_memory=True if use_gpu else False,
+        pin_memory=True if torch.cuda.is_available() else False,
         drop_last=False,
+        collate_fn=collate_fn,
     )
 
     is_regression = not isinstance(loss_fn, nn.CrossEntropyLoss)
-    device = torch.device("cuda" if use_gpu else "cpu")
+    device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
     optimizer = Adam(model.parameters(), lr=1e-4)
     model = model.to(device)
+    best_accuracy = 0.0
+    best_train_accuracy = 0.0
     with trange(num_epochs) as train_progress:
         for epoch in train_progress:
             model.train()
             with tqdm(
-                train_loader, desc=f"Epoch {epoch}", total=n_train_samples, leave=False
+                train_loader,
+                desc=f"Epoch {epoch}",
+                total=n_train_samples,
+                leave=False,
+                mininterval=0.5,
             ) as epoch_progress:
-                for img, label in epoch_progress:
-                    img = img.to(device)
+                for data, label in epoch_progress:
+                    data = data.to(device)
                     label = label.to(device)
                     label = label if not is_regression else label.float()
 
                     optimizer.zero_grad()
-                    prediction = model(img)
+                    prediction = model(data)
                     loss = loss_fn(prediction.squeeze(), label)
                     loss.backward()
                     optimizer.step()
 
                     # Calculate accuracy
                     if is_regression:
-                        prediction = prediction.clip(max=10).round().squeeze()
+                        prediction = prediction.round().squeeze()
                     else:
-                        prediction = prediction.argmax(dim=1, keepdim=True).squeeze()
+                        prediction = prediction.argmax(dim=1)
                     correct = (prediction == label).sum().item()
                     accuracy = correct / batch_size
-
+                    best_train_accuracy = (
+                        accuracy
+                        if accuracy > best_train_accuracy
+                        else best_train_accuracy
+                    )
                     epoch_progress.set_postfix(loss=loss.item(), accuracy=accuracy)
 
             test_accuracy = test(
                 model, test_loader, n_test_samples, device, is_regression
             )
-            train_progress.set_postfix(test_accuracy=test_accuracy)
+            best_accuracy = (
+                test_accuracy if test_accuracy > best_accuracy else best_accuracy
+            )
+            train_progress.set_postfix(
+                best_accuracy=best_accuracy,
+                best_train_accuracy=best_train_accuracy,
+                test_accuracy=test_accuracy,
+            )
 
     return model

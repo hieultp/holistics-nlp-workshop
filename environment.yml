@@ -1,0 +1,23 @@
+dependencies:
+  - python=3.9
+  - pip
+  - pip:
+      - --extra-index-url https://download.pytorch.org/whl/cu117
+      - torch==1.13.*
+      - torchvision
+      - torchtext
+      - transformers
+      - keybert
+      - wordcloud
+      - black
+      - flake8
+      - isort
+      - pre-commit
+      - jupyterlab
+      - jupyterlab-git
+      - matplotlib
+      - ipympl
+      - tqdm
+      - seaborn
+      - plotly
+      - ipywidgets

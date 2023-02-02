@@ -17,6 +17,7 @@ class RegressionModel(nn.Module):
     def forward(self, x):
         x = torch.flatten(x, start_dim=1)
         pred = self.model(x)
+        pred = pred.clip(max=9)
         return pred
 
 
@@ -29,10 +30,20 @@ class ClassificationModel(nn.Module):
             nn.Linear(in_features=28 * 28, out_features=n_features),
             nn.ReLU(),
             nn.Linear(in_features=n_features, out_features=10),
-            nn.Softmax(dim=1),
         )
 
     def forward(self, x):
         x = torch.flatten(x, start_dim=1)
         pred = self.model(x)
         return pred
+
+
+class TextClassificationModel(nn.Module):
+    def __init__(self, vocab_size, embed_dim=128, num_class=3, padding_idx=None):
+        super().__init__()
+        self.embedding = nn.Embedding(vocab_size, embed_dim, padding_idx=padding_idx)
+        self.fc = nn.Linear(embed_dim, num_class)
+
+    def forward(self, text):
+        embedded = self.embedding(text)
+        return self.fc(embedded.mean(dim=1))
