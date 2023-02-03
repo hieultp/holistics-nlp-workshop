@@ -8,9 +8,7 @@ class RegressionModel(nn.Module):
         self.n_features = n_features
 
         self.model = nn.Sequential(
-            nn.Linear(in_features=28 * 28, out_features=n_features),
-            nn.ReLU(),
-            nn.Linear(in_features=n_features, out_features=1),
+            nn.Linear(in_features=28 * 28, out_features=1),
             nn.ReLU(),
         )
 
@@ -27,9 +25,7 @@ class ClassificationModel(nn.Module):
         self.n_features = n_features
 
         self.model = nn.Sequential(
-            nn.Linear(in_features=28 * 28, out_features=n_features),
-            nn.ReLU(),
-            nn.Linear(in_features=n_features, out_features=10),
+            nn.Linear(in_features=28 * 28, out_features=10),
         )
 
     def forward(self, x):
